@@ -1,0 +1,12 @@
+,Raf,Mek,Plcg,PIP2,PIP3,Erk,Akt,PKA,PKC,P38,Jnk
+Raf,False,True,False,False,False,False,False,False,False,False,False
+Mek,False,False,False,False,False,True,False,False,False,False,False
+Plcg,False,False,False,True,True,False,False,False,False,False,False
+PIP2,False,False,False,False,False,False,False,False,False,False,False
+PIP3,False,False,False,True,False,False,False,False,False,False,False
+Erk,False,False,False,False,False,False,True,False,False,False,False
+Akt,False,False,False,False,False,False,False,False,False,False,False
+PKA,True,True,False,False,False,True,True,False,False,True,True
+PKC,True,True,False,False,False,False,False,True,False,True,True
+P38,False,False,False,False,False,False,False,False,False,False,False
+Jnk,False,False,False,False,False,False,False,False,False,False,False
