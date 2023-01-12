@@ -1,1 +1,2 @@
-from .sachs.sachs_dataset import sachs
+from .sachs import __init__
+from .bnlearn import __init__
