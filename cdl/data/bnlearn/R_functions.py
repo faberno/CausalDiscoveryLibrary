@@ -1,7 +1,7 @@
 from rpy2.robjects.packages import importr
 from rpy2 import robjects
 
-bnlearn = importr("bnlearn")
+bnlearn = importr("bnlearn") # todo: dont make this executed everytime
 
 load = robjects.globalenv.find("load")
 set_seed = robjects.globalenv.find("set.seed")
