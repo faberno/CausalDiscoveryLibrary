@@ -1,15 +1,19 @@
 import os
 import pandas as pd
+from typing import Union, Tuple
+import numpy as np
 
 root = os.path.dirname(os.path.abspath(__file__))
-def sachs(obs: bool = True, as_df: bool = True) -> (pd.DataFrame, pd.DataFrame):
+
+
+def sachs(obs: bool = True, as_df: bool = True) -> Union[Tuple[pd.DataFrame, pd.DataFrame], Tuple[np.array, np.array]]:
     """Protein-Signaling Network by Sachs et al.
     - 11 nodes
     - 853 (obs) / 7466 (syn) samples
 
     :param obs: If true, the purely observational dataset is loaded, if not, the observational+synthetic one.
     :param as_df: If true return pd.Dataframes, if not return np.array.
-    :return: Adjacency matrix (11x11) and dataset (853/7466x11) as dataframe.
+    :return: Adjacency matrix (11x11) and dataset (853/7466x11) as dataframe or array.
     """
     G = pd.read_csv(
         os.path.join(root, "sachs_graph.csv"),

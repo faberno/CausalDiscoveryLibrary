@@ -6,6 +6,8 @@ import torch.nn as nn
 import numpy as np
 import math
 
+import pytorch_lightning as pl
+
 
 class NotearsMLP(nn.Module):
     def __init__(self, dims, bias=True):
@@ -85,88 +87,16 @@ class NotearsMLP(nn.Module):
         W = W.cpu().detach().numpy()  # [i, j]
         return W
 
-
-class NotearsSobolev(nn.Module):
-    def __init__(self, d, k):
-        """d: num variables k: num expansion of each variable"""
-        super(NotearsSobolev, self).__init__()
-        self.d, self.k = d, k
-        self.fc1_pos = nn.Linear(d * k, d, bias=False)  # ik -> j
-        self.fc1_neg = nn.Linear(d * k, d, bias=False)
-        self.fc1_pos.weight.bounds = self._bounds()
-        self.fc1_neg.weight.bounds = self._bounds()
-        nn.init.zeros_(self.fc1_pos.weight)
-        nn.init.zeros_(self.fc1_neg.weight)
-        self.l2_reg_store = None
-
-    def _bounds(self):
-        # weight shape [j, ik]
-        bounds = []
-        for j in range(self.d):
-            for i in range(self.d):
-                for _ in range(self.k):
-                    if i == j:
-                        bound = (0, 0)
-                    else:
-                        bound = (0, None)
-                    bounds.append(bound)
-        return bounds
-
-    def sobolev_basis(self, x):  # [n, d] -> [n, dk]
-        seq = []
-        for kk in range(self.k):
-            mu = 2.0 / (2 * kk + 1) / math.pi  # sobolev basis
-            psi = mu * torch.sin(x / mu)
-            seq.append(psi)  # [n, d] * k
-        bases = torch.stack(seq, dim=2)  # [n, d, k]
-        bases = bases.view(-1, self.d * self.k)  # [n, dk]
-        return bases
-
-    def forward(self, x):  # [n, d] -> [n, d]
-        bases = self.sobolev_basis(x)  # [n, dk]
-        x = self.fc1_pos(bases) - self.fc1_neg(bases)  # [n, d]
-        self.l2_reg_store = torch.sum(x ** 2) / x.shape[0]
-        return x
-
-    def h_func(self):
-        fc1_weight = self.fc1_pos.weight - self.fc1_neg.weight  # [j, ik]
-        fc1_weight = fc1_weight.view(self.d, self.d, self.k)  # [j, i, k]
-        A = torch.sum(fc1_weight * fc1_weight, dim=2).t()  # [i, j]
-        h = trace_expm(A) - self.d  # (Zheng et al. 2018)
-        # A different formulation, slightly faster at the cost of numerical stability
-        # M = torch.eye(self.d) + A / self.d  # (Yu et al. 2019)
-        # E = torch.matrix_power(M, self.d - 1)
-        # h = (E.t() * M).sum() - self.d
-        return h
-
-    def l2_reg(self):
-        reg = self.l2_reg_store
-        return reg
-
-    def fc1_l1_reg(self):
-        reg = torch.sum(self.fc1_pos.weight + self.fc1_neg.weight)
-        return reg
-
-    @torch.no_grad()
-    def fc1_to_adj(self) -> np.ndarray:
-        fc1_weight = self.fc1_pos.weight - self.fc1_neg.weight  # [j, ik]
-        fc1_weight = fc1_weight.view(self.d, self.d, self.k)  # [j, i, k]
-        A = torch.sum(fc1_weight * fc1_weight, dim=2).t()  # [i, j]
-        W = torch.sqrt(A)  # [i, j]
-        W = W.cpu().detach().numpy()  # [i, j]
-        return W
-
-
 def squared_loss(output, target):
     n = target.shape[0]
     loss = 0.5 / n * torch.sum((output - target) ** 2)
     return loss
 
 
-def dual_ascent_step(model, X, lambda1, lambda2, rho, alpha, h, rho_max):
+def dual_ascent_step(model, X, lambda1, lambda2, rho, alpha, h, rho_max, optimizer):
     """Perform one step of dual ascent in augmented Lagrangian."""
     h_new = None
-    optimizer = LBFGSBScipy(model.parameters())
+    # optimizer = LBFGSBScipy(model.parameters())
     X_torch = torch.from_numpy(X)
     while rho < rho_max:
         def closure():
@@ -200,37 +130,14 @@ def notears_nonlinear(model: nn.Module,
                       rho_max: float = 1e+16,
                       w_threshold: float = 0.3):
     rho, alpha, h = 1.0, 0.0, np.inf
+    optimizer = LBFGSBScipy(model.parameters())
     for _ in range(max_iter):
         rho, alpha, h = dual_ascent_step(model, X, lambda1, lambda2,
-                                         rho, alpha, h, rho_max)
+                                         rho, alpha, h, rho_max, optimizer)
         if h <= h_tol or rho >= rho_max:
             break
     W_est = model.fc1_to_adj()
     W_est[np.abs(W_est) < w_threshold] = 0
     return W_est
 
-
-# def main():
-#     torch.set_default_dtype(torch.double)
-#     np.set_printoptions(precision=3)
-#
-#     import ..utils as ut
-#     ut.set_random_seed(123)
-#
-#     n, d, s0, graph_type, sem_type = 200, 5, 9, 'ER', 'mim'
-#     B_true = ut.simulate_dag(d, s0, graph_type)
-#     np.savetxt('W_true.csv', B_true, delimiter=',')
-#
-#     X = ut.simulate_nonlinear_sem(B_true, n, sem_type)
-#     np.savetxt('X.csv', X, delimiter=',')
-#
-#     model = NotearsMLP(dims=[d, 10, 1], bias=True)
-#     W_est = notears_nonlinear(model, X, lambda1=0.01, lambda2=0.01)
-#     assert ut.is_dag(W_est)
-#     np.savetxt('W_est.csv', W_est, delimiter=',')
-#     acc = ut.count_accuracy(B_true, W_est != 0)
-#     print(acc)
-#
-#
-# if __name__ == '__main__':
-#     main()
+# class Notears_lightning(pl.LightningModule)

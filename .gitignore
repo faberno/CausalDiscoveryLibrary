@@ -33,6 +33,9 @@ MANIFEST
 *.manifest
 *.spec
 
+# Lightning
+lightning_logs/
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

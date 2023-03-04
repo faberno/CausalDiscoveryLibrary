@@ -2,6 +2,7 @@ import glob
 import os
 import urllib.request
 import json
+import random
 
 import pandas as pd
 from rpy2 import robjects
@@ -40,8 +41,9 @@ def create_bnlearn_dataset(name, n_samples, seed=None, save=False):
     if not os.path.isfile(file_path):
         urllib.request.urlretrieve(f"{BN_URL}{name}/{name}.rda", file_path)
 
-    if seed is not None:
-        set_seed(seed)
+    if seed is None:
+        seed = random.randint(0, 10000)
+    set_seed(seed)
     load(file_path)
     bn = robjects.globalenv.find("bn")
     adj = as_dataframe(amat(bn))
@@ -67,7 +69,7 @@ def create_bnlearn_dataset(name, n_samples, seed=None, save=False):
             i = 0
         else:
             i = find_dataset_index(dataset_path)
-        X.to_csv(os.path.join(dataset_path, f"{i}_{name}_{n_samples}.csv"), index=False)
+        X.to_csv(os.path.join(dataset_path, f"{i}_{name}_{n_samples}_{seed}.csv"), index=False)
 
     return adj, X, variable_states
 
