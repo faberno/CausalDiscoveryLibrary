@@ -1,8 +1,8 @@
 library(mgcv)
 
-source("diffan/pruning_R_files/train_gam.R", chdir=T)
-source("diffan/pruning_R_files/selGam.R", chdir=T)
-source("diffan/pruning_R_files/pruning.R", chdir=T)
+source("models/diffan/pruning_R_files/train_gam.R", chdir=T)
+source("models/diffan/pruning_R_files/selGam.R", chdir=T)
+source("models/diffan/pruning_R_files/pruning.R", chdir=T)
 
 
 dataset <- read.csv(file='{PATH_DATA}', header=FALSE, sep=",")

@@ -294,11 +294,13 @@ class LitDagGNN(pl.LightningModule):
 
         loss = nll_loss + kl_loss + sparse_loss + lagrangian_loss # todo custom lr scheduler
 
-        self.log('nll_loss', nll_loss.item())
-        self.log('kl_loss', kl_loss.item())
-        self.log('sparse_loss', sparse_loss.item())
-        self.log('lagrangian_loss', lagrangian_loss.item())
-        self.log('loss', loss.item())
+        self.log_dict({
+            'nll_loss': nll_loss.item(),
+            'kl_loss': kl_loss.item(),
+            'sparse_loss': sparse_loss.item(),
+            'lagrangian_loss': lagrangian_loss.item(),
+            'loss': loss.item()
+        })
 
         self.current_graph = origin_A
 

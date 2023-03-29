@@ -51,12 +51,13 @@ class DiffAN():
         self.cutoff = 0.001
     
     def fit(self, X):
-        X = (X - X.mean(0, keepdims = True)) / X.std(0, keepdims = True)
+        # X = (X - X.mean(0, keepdims = True)) / X.std(0, keepdims = True)
         X = torch.FloatTensor(X).to(self.device)
         self.train_score(X)
         order = self.topological_ordering(X)
+        return full_DAG(order)
         out_dag = self.pruning(order, X.detach().cpu().numpy())
-        return out_dag, order
+        # return out_dag, order
 
     def pruning(self, order, X):
         return cam_pruning(full_DAG(order), X, self.cutoff)
